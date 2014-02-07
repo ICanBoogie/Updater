@@ -99,7 +99,7 @@ class ModelUpdater
 
 	protected function get_columns()
 	{
-		return $this->model('SHOW COLUMNS FROM {self}')
+		return $this->model('SHOW FULL COLUMNS FROM {self}')
 		->all(\PDO::FETCH_GROUP|\PDO::FETCH_UNIQUE|\PDO::FETCH_ASSOC);
 	}
 
@@ -170,7 +170,6 @@ class ModelUpdater
 	public function alter_column($column_name, array $changes=null)
 	{
 		$new_column_name = $column_name;
-		$column = $this->schema[$column_name];
 
 		if ($changes)
 		{
@@ -180,7 +179,12 @@ class ModelUpdater
 				unset($changes['name']);
 			}
 
-			$column = new SchemaColumn(array_merge($column->to_array(), $changes));
+// 			$column = new SchemaColumn(array_merge($column->to_array(), $changes));
+			$column = $this->schema[$new_column_name];
+		}
+		else
+		{
+			$column = $this->schema[$column_name];
 		}
 
 		$this->model("ALTER TABLE {self} CHANGE `$column_name` `$new_column_name` " . (string) $column);
