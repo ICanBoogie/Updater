@@ -46,6 +46,10 @@ class ModuleUpdater extends Update
 				}
 
 				return $this->_models;
+
+			case 'target':
+
+				return $this->module;
 		}
 
 		throw new PropertyNotDefined(array($property, $this));

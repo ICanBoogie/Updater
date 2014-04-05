@@ -11,6 +11,8 @@
 
 namespace ICanBoogie\Updater;
 
+use ICanBoogie\PropertyNotDefined;
+
 /**
  * Representation of an update.
  *
@@ -48,6 +50,8 @@ abstract class Update
 
 				return $this->services[$property];
 		}
+
+		throw new PropertyNotDefined(array($property, $this));
 	}
 
 	protected function get_module()

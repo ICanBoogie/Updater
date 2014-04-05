@@ -90,6 +90,10 @@ class ModelUpdater
 				}
 
 				return $this->_schema;
+
+			case 'target':
+
+				return $this->model;
 		}
 
 		throw new PropertyNotDefined(array($property, $this));
@@ -110,6 +114,12 @@ class ModelUpdater
 		$schema = $this->model->schema;
 
 		return new Schema($schema['fields']);
+	}
+
+	protected function revoke_schema()
+	{
+		$this->_schema = null;
+		$this->_columns = null;
 	}
 
 	/*
@@ -188,11 +198,19 @@ class ModelUpdater
 		}
 
 		$this->model("ALTER TABLE {self} CHANGE `$column_name` `$new_column_name` " . (string) $column);
+		$this->revoke_schema();
 	}
 
+	/**
+	 * Renames a column in a table.
+	 *
+	 * @param string $column_name The name of the column to rename.
+	 * @param string $new_column_name The new name of the column.
+	 */
 	public function rename_column($column_name, $new_column_name)
 	{
 		$this->alter_column($column_name, array('name' => $new_column_name));
+		$this->revoke_schema();
 	}
 
 	public function create_column($column_name, array $options=array())
@@ -202,6 +220,18 @@ class ModelUpdater
 		$position = $this->resolve_column_position($column_name, $fields);
 
 		$this->model("ALTER TABLE `{self}` ADD `$column_name` " . $schema[$column_name] . " $position");
+		$this->revoke_schema();
+	}
+
+	/**
+	 * Removes a column from the table.
+	 *
+	 * @param string $column_name The name of the column to remove.
+	 */
+	public function remove_column($column_name)
+	{
+		$this->model("ALTER TABLE `{self}` DROP COLUMN `$column_name`");
+		$this->revoke_schema();
 	}
 
 	protected function resolve_column_position($column_name, $fields)
@@ -215,6 +245,21 @@ class ModelUpdater
 		}
 
 		return 'AFTER `' . $names[$key - 1] . '`';
+	}
+
+	/*
+	 * Index
+	 */
+
+	public function create_unique_index($index_name, $column_name=null)
+	{
+		if (!$column_name)
+		{
+			$column_name = $index_name;
+		}
+
+		$this->model("CREATE UNIQUE INDEX `$index_name` ON `{self}` (`$column_name`)");
+		$this->revoke_schema();
 	}
 }
 

@@ -11,24 +11,55 @@
 
 namespace ICanBoogie\Updater;
 
+use ICanBoogie\Module;
+
 class Updater
 {
+	static public function run(\ICanBoogie\Core $core)
+	{
+		$updater = new static;
+
+		foreach ($core->modules->descriptors as $module_id => $descriptor)
+		{
+			$pathname = $descriptor[Module::T_PATH] . DIRECTORY_SEPARATOR . 'updates.php';
+
+			if (!file_exists($pathname))
+			{
+				continue;
+			}
+
+			$updater($pathname);
+		}
+	}
+
 	public function __invoke($path)
 	{
 		require_once $path;
 
-		list($class, $comment) = self::parse_file($path);
+		$update_constructor_list = self::parse_file($path);
 
-		$options = self::resolve_options($comment);
+		foreach ($update_constructor_list as $update_constructor)
+		{
+			list($class, $annotation) = $update_constructor;
 
-		$update = new $class($options);
+			$options = self::resolve_options($annotation);
 
-		$this->run_updates($update);
+			$update = new $class($options);
+
+			$this->run_updates($update);
+		}
 	}
 
-	protected function run_updates($update)
+	protected function run_updates(Update $update)
 	{
+		echo "Scanning module: {$update->module->target}\n";
+
 		$update_reflection = new \ReflectionClass($update);
+
+		if ($update_reflection->hasMethod('before'))
+		{
+			$update->before();
+		}
 
 		foreach ($update_reflection->getMethods(\ReflectionMethod::IS_PUBLIC) as $method_reflection)
 		{
@@ -45,17 +76,26 @@ class Updater
 			}
 			catch (AssertionFailed $e)
 			{
-				echo "Nothing to update: $method_name<br />";
+				echo "Nothing to update: $method_name\n";
 
 				continue;
 			}
 		}
 	}
 
+	/**
+	 * Parses the specified file and returns update constructors.
+	 *
+	 * @param string $path Path to the PHP script to parse.
+	 *
+	 * @return array An array of update constructor. Each update constructor has the following
+	 * layout : [ 0 => $class_name, 1 => $annotation ]
+	 */
 	static private function parse_file($path)
 	{
 		$tokens = token_get_all(file_get_contents($path));
 		$namespace = null;
+		$update_constructors = [];
 
 		for ($i = 0, $j = count($tokens) ; $i < $j ; $i++)
 		{
@@ -63,8 +103,6 @@ class Updater
 
 			if (!is_array($token))
 			{
-				echo "just a string: $token<br />";
-
 				continue;
 			}
 
@@ -80,9 +118,27 @@ class Updater
 
 				case \T_CLASS:
 
-					return array($namespace . '\\' . $tokens[$i + 2][1], $tokens[$i - 2][1]);
+					$class_name_token = $tokens[$i + 2];
+					$class_name = $class_name_token[1];
+
+					$class_annotation_token = $tokens[$i - 2];
+
+					if (!is_array($class_annotation_token))
+					{
+						echo "Missing annotation for class $class_name\n";
+
+						continue;
+					}
+
+					$class_annotation = $class_annotation_token[1];
+
+					$update_constructors[] = array($namespace . '\\' . $class_name, $class_annotation);
 			}
 		}
+
+		sort($update_constructors);
+
+		return $update_constructors;
 	}
 
 	static private function parser_resolve_namespace($tokens, &$i)
