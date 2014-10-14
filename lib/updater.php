@@ -15,9 +15,11 @@ use ICanBoogie\Module;
 
 class Updater
 {
+	use \ICanBoogie\GetterTrait;
+
 	static public function run(\ICanBoogie\Core $core)
 	{
-		$updater = new static;
+		$updater = new static($core);
 
 		foreach ($core->modules->descriptors as $module_id => $descriptor)
 		{
@@ -32,6 +34,18 @@ class Updater
 		}
 	}
 
+	private $app;
+
+	protected function get_app()
+	{
+		return $this->app;
+	}
+
+	public function __construct($app)
+	{
+		$this->app = $app;
+	}
+
 	public function __invoke($path)
 	{
 		require_once $path;
@@ -44,7 +58,7 @@ class Updater
 
 			$options = self::resolve_options($annotation);
 
-			$update = new $class($options);
+			$update = new $class($this, $options);
 
 			$this->run_updates($update);
 		}
@@ -52,7 +66,9 @@ class Updater
 
 	protected function run_updates(Update $update)
 	{
-		echo "Scanning module: {$update->module->target}\n";
+		$target_name = (string) $update->module->target;
+		$update_name = $update->id;
+		$log_prefix = "[{$target_name}.{$update_name}] ";
 
 		$update_reflection = new \ReflectionClass($update);
 
@@ -73,14 +89,20 @@ class Updater
 			try
 			{
 				$update->$method_name();
+
+				echo $log_prefix . \ICanBoogie\titleize(substr($method_name, 7)) . "\n";
 			}
 			catch (AssertionFailed $e)
 			{
-				echo "Nothing to update: $method_name\n";
-
 				continue;
 			}
+			catch (\Exception $e)
+			{
+				echo $log_prefix . "$method_name raised the following exception:\n\n " . $e . "\n\n";
+			}
 		}
+
+		echo $log_prefix . "Done\n";
 	}
 
 	/**

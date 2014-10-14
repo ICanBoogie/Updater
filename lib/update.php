@@ -20,11 +20,13 @@ use ICanBoogie\PropertyNotDefined;
  */
 abstract class Update
 {
+	private $updater;
 	private $options;
 	private $services = array();
 
-	public function __construct(array $options)
+	public function __construct(Updater $updater, array $options)
 	{
+		$this->updater = $updater;
 		$this->options = $options;
 	}
 
@@ -32,6 +34,18 @@ abstract class Update
 	{
 		switch ($property)
 		{
+			case 'id':
+
+				return get_class($this);
+
+			case 'app':
+
+				return $this->updater->app;
+
+			case 'updater':
+
+				return $this->updater;
+
 			case 'module':
 
 				if (empty($this->services[$property]))
