@@ -19,19 +19,23 @@ class Updater
 
 	static public function run(\ICanBoogie\Core $core)
 	{
-		$updater = new static($core);
+		$files = [];
 
 		foreach ($core->modules->descriptors as $module_id => $descriptor)
 		{
-			$pathname = $descriptor[Module::T_PATH] . DIRECTORY_SEPARATOR . 'updates.php';
+			$pathname = $descriptor[Module::T_PATH] . 'updates.php';
 
 			if (!file_exists($pathname))
 			{
 				continue;
 			}
 
-			$updater($pathname);
+			$files[] = $pathname;
 		}
+
+		$collection = new UpdateCollection($files);
+		$updater = new static($core);
+		$updater($collection);
 	}
 
 	private $app;
@@ -41,154 +45,22 @@ class Updater
 		return $this->app;
 	}
 
-	public function __construct($app)
+	protected function __construct($app)
 	{
 		$this->app = $app;
 	}
 
-	public function __invoke($path)
+	public function __invoke(UpdateCollection $collection)
 	{
-		require_once $path;
-
-		$update_constructor_list = self::parse_file($path);
-
-		foreach ($update_constructor_list as $update_constructor)
+		foreach ($collection as $descriptor)
 		{
-			list($class, $annotation) = $update_constructor;
+			require_once $descriptor->file;
 
-			$options = self::resolve_options($annotation);
+			$class = $descriptor->class;
+			$options = $descriptor->options;
 
-			$update = new $class($this, $options);
-
-			$this->run_updates($update);
+			$update = new $class($this, $options, $descriptor);
+			$update->run();
 		}
-	}
-
-	protected function run_updates(Update $update)
-	{
-		$target_name = (string) $update->module->target;
-		$update_name = $update->id;
-		$log_prefix = "[{$target_name}.{$update_name}] ";
-
-		$update_reflection = new \ReflectionClass($update);
-
-		if ($update_reflection->hasMethod('before'))
-		{
-			$update->before();
-		}
-
-		foreach ($update_reflection->getMethods(\ReflectionMethod::IS_PUBLIC) as $method_reflection)
-		{
-			$method_name = $method_reflection->name;
-
-			if (strpos($method_name, 'update_') !== 0)
-			{
-				continue;
-			}
-
-			try
-			{
-				$update->$method_name();
-
-				echo $log_prefix . \ICanBoogie\titleize(substr($method_name, 7)) . "\n";
-			}
-			catch (AssertionFailed $e)
-			{
-				continue;
-			}
-			catch (\Exception $e)
-			{
-				echo $log_prefix . "$method_name raised the following exception:\n\n " . $e . "\n\n";
-			}
-		}
-
-		echo $log_prefix . "Done\n";
-	}
-
-	/**
-	 * Parses the specified file and returns update constructors.
-	 *
-	 * @param string $path Path to the PHP script to parse.
-	 *
-	 * @return array An array of update constructor. Each update constructor has the following
-	 * layout : [ 0 => $class_name, 1 => $annotation ]
-	 */
-	static private function parse_file($path)
-	{
-		$tokens = token_get_all(file_get_contents($path));
-		$namespace = null;
-		$update_constructors = [];
-
-		for ($i = 0, $j = count($tokens) ; $i < $j ; $i++)
-		{
-			$token = $tokens[$i];
-
-			if (!is_array($token))
-			{
-				continue;
-			}
-
-			list($token_id, $value, $line) = $token;
-
-			switch ($token_id)
-			{
-				case \T_NAMESPACE:
-
-					$namespace = self::parser_resolve_namespace($tokens, $i);
-
-					break;
-
-				case \T_CLASS:
-
-					$class_name_token = $tokens[$i + 2];
-					$class_name = $class_name_token[1];
-
-					$class_annotation_token = $tokens[$i - 2];
-
-					if (!is_array($class_annotation_token))
-					{
-						echo "Missing annotation for class $class_name\n";
-
-						continue;
-					}
-
-					$class_annotation = $class_annotation_token[1];
-
-					$update_constructors[] = array($namespace . '\\' . $class_name, $class_annotation);
-			}
-		}
-
-		sort($update_constructors);
-
-		return $update_constructors;
-	}
-
-	static private function parser_resolve_namespace($tokens, &$i)
-	{
-		$i += 2;
-		$rc = '';
-
-		for ($j = count($tokens) - $i ; $i < $j ; $i++)
-		{
-			$token = $tokens[$i];
-
-			if ($token === ';')
-			{
-				break;
-			}
-
-			$rc .= $token[1];
-		}
-
-		return $rc;
-	}
-
-	static private function resolve_options($comment)
-	{
-		preg_match_all('#@([^\s]+)\s+([^\n]+)#', $comment, $matches);
-
-		return array_combine($matches[1], $matches[2]);
 	}
 }
-
-// , "TIMESTAMP NOT NULL AFTER `created_at`"

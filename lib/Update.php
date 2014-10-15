@@ -22,12 +22,14 @@ abstract class Update
 {
 	private $updater;
 	private $options;
-	private $services = array();
+	private $services = [];
+	private $descriptor;
 
-	public function __construct(Updater $updater, array $options)
+	public function __construct(Updater $updater, array $options, UpdateDescriptor $descriptor)
 	{
 		$this->updater = $updater;
 		$this->options = $options;
+		$this->descriptor = $descriptor;
 	}
 
 	public function __get($property)
@@ -37,6 +39,10 @@ abstract class Update
 			case 'id':
 
 				return get_class($this);
+
+			case 'normalized_id':
+
+				return $this->descriptor->normalized_id;
 
 			case 'app':
 
@@ -76,5 +82,49 @@ abstract class Update
 	protected function get_modules()
 	{
 		return \ICanBoogie\Core::get()->modules;
+	}
+
+	/**
+	 * Run the update.
+	 */
+	public function run()
+	{
+		$target_name = (string) $this->module->target;
+		$update_name = $this->normalized_id;
+		$log_prefix = "[{$update_name} {$target_name}] ";
+
+		$update_reflection = new \ReflectionClass($this);
+
+		if ($update_reflection->hasMethod('before'))
+		{
+			$this->before();
+		}
+
+		foreach ($update_reflection->getMethods(\ReflectionMethod::IS_PUBLIC) as $method_reflection)
+		{
+			$method_name = $method_reflection->name;
+
+			if (strpos($method_name, 'update_') !== 0)
+			{
+				continue;
+			}
+
+			try
+			{
+				$this->$method_name();
+
+				echo $log_prefix . \ICanBoogie\titleize(substr($method_name, 7)) . "\n";
+			}
+			catch (AssertionFailed $e)
+			{
+				continue;
+			}
+			catch (\Exception $e)
+			{
+				echo $log_prefix . "$method_name raised the following exception:\n\n " . $e . "\n\n";
+			}
+		}
+
+		echo $log_prefix . "Done\n";
 	}
 }
