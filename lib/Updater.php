@@ -11,19 +11,20 @@
 
 namespace ICanBoogie\Updater;
 
-use ICanBoogie\Module;
+use ICanBoogie\Accessor\AccessorTrait;
+use ICanBoogie\Module\Descriptor;
 
 class Updater
 {
-	use \ICanBoogie\GetterTrait;
+	use AccessorTrait;
 
-	static public function run(\ICanBoogie\Core $core)
+	static public function run(\ICanBoogie\Core $app)
 	{
 		$files = [];
 
-		foreach ($core->modules->descriptors as $module_id => $descriptor)
+		foreach ($app->modules->descriptors as $module_id => $descriptor)
 		{
-			$pathname = $descriptor[Module::T_PATH] . 'updates.php';
+			$pathname = $descriptor[Descriptor::PATH] . 'updates.php';
 
 			if (!file_exists($pathname))
 			{
@@ -34,7 +35,7 @@ class Updater
 		}
 
 		$collection = new UpdateCollection($files);
-		$updater = new static($core);
+		$updater = new static($app);
 		$updater($collection);
 	}
 
