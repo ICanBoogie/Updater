@@ -11,6 +11,7 @@
 
 namespace ICanBoogie\Updater;
 
+use ICanBoogie\Module;
 use ICanBoogie\PropertyNotDefined;
 
 /**
@@ -18,6 +19,7 @@ use ICanBoogie\PropertyNotDefined;
  *
  * @property-read ModelUpdaterList $models
  * @property-read ModelUpdater $model
+ * @property-read Module $target
  */
 class ModuleUpdater extends Update
 {

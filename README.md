@@ -7,7 +7,7 @@ An update API.
 
 ## Requirements
 
-The package requires PHP 5.3 or later.
+The package requires PHP 5.5 or later.
 
 
 
@@ -18,15 +18,9 @@ The package requires PHP 5.3 or later.
 The recommended way to install this package is through [Composer](http://getcomposer.org/).
 Create a `composer.json` file and run `php composer.phar install` command to install it:
 
-```json
-{
-	"minimum-stability": "dev",
-	"require": {
-		"icanboogie/updater": "*"
-	}
-}
 ```
-
+$ composer require icanboogie/updater
+```
 
 
 

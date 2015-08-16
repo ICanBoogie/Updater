@@ -11,9 +11,15 @@
 
 namespace ICanBoogie\Updater;
 
+use ICanBoogie\Accessor\AccessorTrait;
+
+/**
+ * @property-read array $options
+ * @property-read string $normalized_id
+ */
 class UpdateDescriptor
 {
-	use \ICanBoogie\GetterTrait;
+	use AccessorTrait
 
 	public $class;
 	public $annotation;

@@ -17,12 +17,18 @@ use ICanBoogie\ActiveRecord\SchemaColumn;
 use ICanBoogie\ActiveRecord\Schema;
 
 /**
- * @property-read array $columns
  *
- * @method ModelUpdater assert_has_column() assert_has_column(string $column_name)
+ * @method ModelUpdater assert_has_column(string $column_name)
  * Asserts that a model has a column with the specified name.
- * @method ModelUpdater assert_not_has_column() assert_not_has_column(string $column_name)
- * Asserts that a model doesn't have a column with the specified name.
+ * @method ModelUpdater assert_not_has_column(string $column_name)
+ * Asserts that a model does not have a column with the specified name.
+ * @method ModelUpdater assert_column_has_size(string $column_name, $size)
+ * Asserts a column has a given size.
+ * @method ModelUpdater assert_not_column_has_size(string $column_name, $size)
+ * Asserts a column does not have a given size.
+ *
+ * @property-read array $columns
+ * @property-read Schema $schema
  */
 class ModelUpdater
 {
@@ -260,45 +266,5 @@ class ModelUpdater
 
 		$this->model("CREATE UNIQUE INDEX `$index_name` ON `{self}` (`$column_name`)");
 		$this->revoke_schema();
-	}
-}
-
-namespace ICanBoogie\ActiveRecord;
-
-class Schema implements \ArrayAccess, \IteratorAggregate
-{
-	protected $columns = array();
-
-	public function __construct(array $columns)
-	{
-		foreach ($columns as $column_id => $column_option)
-		{
-			$this->columns[$column_id] = new SchemaColumn($column_option);
-		}
-	}
-
-	public function offsetExists($offset)
-	{
-
-	}
-
-	public function offsetGet($name)
-	{
-		return $this->columns[$name];
-	}
-
-	public function offsetSet($offset, $value)
-	{
-
-	}
-
-	public function offsetUnset($offset)
-	{
-
-	}
-
-	public function getIterator()
-	{
-		return new \ArrayIterator($this->columns);
 	}
 }

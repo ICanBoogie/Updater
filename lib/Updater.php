@@ -14,10 +14,16 @@ namespace ICanBoogie\Updater;
 use ICanBoogie\Accessor\AccessorTrait;
 use ICanBoogie\Module\Descriptor;
 
+/**
+ * @property-read \ICanBoogie\Core|\ICanBoogie\Module\CoreBindings $app
+ */
 class Updater
 {
 	use AccessorTrait;
 
+	/**
+	 * @param \ICanBoogie\Core|\ICanBoogie\Module\CoreBindings $app
+	 */
 	static public function run(\ICanBoogie\Core $app)
 	{
 		$files = [];

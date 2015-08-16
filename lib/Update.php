@@ -12,11 +12,17 @@
 namespace ICanBoogie\Updater;
 
 use ICanBoogie\PropertyNotDefined;
+use Icybee\Modules\Modules\ModuleCollection;
 
 /**
  * Representation of an update.
  *
+ * @property-read \ICanBoogie\Core|\ICanBoogie\Binding\ActiveRecord\CoreBindings|\ICanBoogie\Module\CoreBindings $app
+ * @property-read string $id
+ * @property-read string $normalized_id
  * @property-read ModuleUpdater $module
+ * @property-read ModuleCollection $modules
+ * @property-read Updater $updater
  */
 abstract class Update
 {
@@ -81,7 +87,7 @@ abstract class Update
 
 	protected function get_modules()
 	{
-		return \ICanBoogie\Core::get()->modules;
+		return $this->app->modules;
 	}
 
 	/**
@@ -95,10 +101,7 @@ abstract class Update
 
 		$update_reflection = new \ReflectionClass($this);
 
-		if ($update_reflection->hasMethod('before'))
-		{
-			$this->before();
-		}
+		$this->before();
 
 		foreach ($update_reflection->getMethods(\ReflectionMethod::IS_PUBLIC) as $method_reflection)
 		{
@@ -126,5 +129,10 @@ abstract class Update
 		}
 
 		echo $log_prefix . "Done\n";
+	}
+
+	protected function before()
+	{
+
 	}
 }
