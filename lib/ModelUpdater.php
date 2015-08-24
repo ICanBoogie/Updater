@@ -27,11 +27,16 @@ use ICanBoogie\ActiveRecord\Schema;
  * @method ModelUpdater assert_not_column_has_size(string $column_name, $size)
  * Asserts a column does not have a given size.
  *
+ * @method mixed model(string $statement, array $args = [])
+ *
  * @property-read array $columns
  * @property-read Schema $schema
  */
 class ModelUpdater
 {
+	/**
+	 * @var Model
+	 */
 	protected $model;
 
 	public function __construct(Model $model)
@@ -117,9 +122,7 @@ class ModelUpdater
 
 	protected function get_schema()
 	{
-		$schema = $this->model->schema;
-
-		return new Schema($schema['fields']);
+		return $this->model->schema;
 	}
 
 	protected function revoke_schema()
@@ -219,11 +222,10 @@ class ModelUpdater
 		$this->revoke_schema();
 	}
 
-	public function create_column($column_name, array $options=array())
+	public function create_column($column_name, array $options = array())
 	{
-		$fields = $this->model->schema['fields'];
-		$schema = new \ICanBoogie\ActiveRecord\Schema($fields);
-		$position = $this->resolve_column_position($column_name, $fields);
+		$schema = $this->model->schema;
+		$position = $this->resolve_column_position($column_name, $schema);
 
 		$this->model("ALTER TABLE `{self}` ADD `$column_name` " . $schema[$column_name] . " $position");
 		$this->revoke_schema();
@@ -240,9 +242,9 @@ class ModelUpdater
 		$this->revoke_schema();
 	}
 
-	protected function resolve_column_position($column_name, $fields)
+	protected function resolve_column_position($column_name, Schema $schema)
 	{
-		$names = array_keys($fields);
+		$names = array_keys($schema->columns);
 		$key = array_search($column_name, $names);
 
 		if ($key == 0)

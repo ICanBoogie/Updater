@@ -66,6 +66,8 @@ class Updater
 			$class = $descriptor->class;
 			$options = $descriptor->options;
 
+			/* @var $update \ICanBoogie\Updater\Update */
+
 			$update = new $class($this, $options, $descriptor);
 			$update->run();
 		}
