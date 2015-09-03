@@ -11,49 +11,46 @@
 
 namespace ICanBoogie\Updater;
 
+use ICanBoogie\Accessor\AccessorTrait;
 use ICanBoogie\Module;
-use ICanBoogie\PropertyNotDefined;
 
 /**
  * Representation of a module update.
  *
  * @property-read ModelUpdaterList $models
- * @property-read ModelUpdater $model
+ * @property-read ModelUpdater|\ICanBoogie\ActiveRecord\Model $model
  * @property-read Module $target
  */
 class ModuleUpdater extends Update
 {
-	protected $module;
+	use AccessorTrait;
 
-	public function __construct($module)
+	/**
+	 * @var Module
+	 */
+	protected $target;
+
+	protected function get_target()
 	{
-		$this->module = $module;
+		return $this->target;
 	}
 
-	private $_models;
+	protected $models;
 
-	public function __get($property)
+	protected function lazy_get_models()
 	{
-		switch ($property)
-		{
-			case 'model':
+		return new ModelUpdaterList($this->target);
+	}
 
-				return $this->models['primary'];
+	protected function get_model()
+	{
+		return $this->models['primary'];
+	}
 
-			case 'models':
+	public function __construct(Module $target)
+	{
+		unset($this->models);
 
-				if ($this->_models === null)
-				{
-					$this->_models = new ModelUpdaterList($this->module);
-				}
-
-				return $this->_models;
-
-			case 'target':
-
-				return $this->module;
-		}
-
-		throw new PropertyNotDefined(array($property, $this));
+		$this->target = $target;
 	}
 }

@@ -77,7 +77,7 @@ class ModelUpdater
 			return $this;
 		}
 
-		throw new \BadMethodCallException("The method $method is not implemented.");
+		return call_user_func_array([ $this->model, $method ], $arguments);
 	}
 
 	public function __get($property)
@@ -93,21 +93,12 @@ class ModelUpdater
 
 				return $this->_columns;
 
-			case 'schema':
-
-				if ($this->_schema === null)
-				{
-					$this->_schema = $this->get_schema();
-				}
-
-				return $this->_schema;
-
 			case 'target':
 
 				return $this->model;
 		}
 
-		throw new PropertyNotDefined(array($property, $this));
+		return $this->model->$property;
 	}
 
 	private $_columns;
@@ -118,16 +109,8 @@ class ModelUpdater
 		->all(\PDO::FETCH_GROUP|\PDO::FETCH_UNIQUE|\PDO::FETCH_ASSOC);
 	}
 
-	private $_schema;
-
-	protected function get_schema()
-	{
-		return $this->model->schema;
-	}
-
 	protected function revoke_schema()
 	{
-		$this->_schema = null;
 		$this->_columns = null;
 	}
 
@@ -198,7 +181,6 @@ class ModelUpdater
 				unset($changes['name']);
 			}
 
-// 			$column = new SchemaColumn(array_merge($column->to_array(), $changes));
 			$column = $this->schema[$new_column_name];
 		}
 		else

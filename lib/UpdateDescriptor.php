@@ -19,7 +19,7 @@ use ICanBoogie\Accessor\AccessorTrait;
  */
 class UpdateDescriptor
 {
-	use AccessorTrait
+	use AccessorTrait;
 
 	public $class;
 	public $annotation;
